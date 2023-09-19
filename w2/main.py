@@ -63,17 +63,18 @@ def get_sales_information(file_path: str) -> Dict:
 # batches the files based on the number of processes
 def batch_files(file_paths: List[str], n_processes: int) -> List[set]:
     if n_processes > len(file_paths):
-        return #### [YOUR CODE HERE] ####
+        return [] ####returns empty array and then will stop execution
 
-    n_per_batch = #### [YOUR CODE HERE] ####
+    n_per_batch = len(file_paths) // n_processes  ##the // is whole devision result is in whole numbers
 
     first_set_len = n_processes * n_per_batch
     first_set = file_paths[0:first_set_len]
-    second_set = #### [YOUR CODE HERE] ####
+    second_set = file_paths[first_set_len:]#### this is the remainder of the files dist evenly ####
 
     batches = [set(file_paths[i:i + n_per_batch]) for i in range(0, len(first_set), n_per_batch)]
     for ind, each_file in enumerate(second_set):
         #### [YOUR CODE HERE] ####
+        batches[ind].add(each_file)
 
     return batches
 
@@ -144,7 +145,7 @@ def main() -> List[Dict]:
     """
 
     st = time.time()
-    n_processes = 3 # you may modify this number - check out multiprocessing.cpu_count() as well
+    n_processes = 1 # you may modify this number - check out multiprocessing.cpu_count() as well
 
     parser = argparse.ArgumentParser(description="Choose from one of these : [tst|sml|bg]")
     parser.add_argument('--type',
@@ -165,6 +166,12 @@ def main() -> List[Dict]:
 
     ######################################## YOUR CODE HERE ##################################################
     with multiprocessing.Pool(processes=n_processes) as pool:
+        params = [(file_paths, n_process) for n_process, file_paths in enumerate(batches)]
+        revenue_data = pool.starmap(run, params)
+        revenue_data = flatten(revenue_data)
+
+        pool.close()
+        pool.join()
         
     ######################################## YOUR CODE HERE ##################################################
 
@@ -173,14 +180,42 @@ def main() -> List[Dict]:
 
     ######################################## YOUR CODE HERE ##################################################
     for yearly_data in revenue_data:
+         with open(os.path.join(output_save_folder, f'{yearly_data["file_name"]}.json'), 'w') as f:
+            f.write(json.dumps(yearly_data))
+
+         plot_sales_data(
+            yearly_revenue=yearly_data['revenue_per_region'], 
+            year=yearly_data["file_name"],
+            plot_save_path=os.path.join(output_save_folder,
+            f'{yearly_data["file_name"]}.png')
+            )
+
+
         
 
     ######################################## YOUR CODE HERE ##################################################
         
     # should return revenue data
-    return #### [YOUR CODE HERE] ####
+    return revenue_data #### [YOUR CODE HERE] ####
 
 
 if __name__ == '__main__':
     res = main()
     pprint(res)
+
+###### result times ######    
+# 1 core time for sml data=
+# Batch for process-0 time taken 56.854694843292236
+# Overall time taken : 56.990585803985596
+
+# 4 core time limit for sml data = 
+# Batch for process-3 time taken 17.520930290222168
+# Batch for process-0 time taken 26.724422216415405
+# Batch for process-2 time taken 27.39012861251831
+# Batch for process-1 time taken 26.111896991729736
+
+# 4 core time limit for bg data = 
+# Batch for process-3 time taken 135.1904797554016
+# Batch for process-1 time taken 165.95811414718628
+# Batch for process-2 time taken 184.7660665512085
+# Batch for process-0 time taken 167.63206362724304
